@@ -4,12 +4,12 @@ Core orchestrator: xử lý ảnh qua pipeline resize → grayscale → map ký 
 """
 
 from PIL import Image
-from config import IMAGE_CONFIG, CHARSET_CONFIG, COLOR_CONFIG, UNICODE_CONFIG
-from resize import resize_image
-from grayscale import to_grayscale, get_pixels
-from charset import get_char
-from color import colorize
-from unicode_mode import to_braille_art, to_block_art
+from .config import IMAGE_CONFIG, CHARSET_CONFIG, COLOR_CONFIG, UNICODE_CONFIG
+from .resize import resize_image
+from .grayscale import to_grayscale, get_pixels
+from .charset import get_char
+from .color import colorize
+from .unicode_mode import to_braille_art, to_block_art
 
 
 def image_to_ascii(

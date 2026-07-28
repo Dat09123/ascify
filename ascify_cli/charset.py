@@ -3,7 +3,7 @@ charset.py - Bộ ký tự cho Ascify-CLI
 Quản lý và ánh xạ độ sáng → ký tự ASCII
 """
 
-from config import CHARSET_CONFIG
+from .config import CHARSET_CONFIG
 
 
 def get_charset(name: str | None = None) -> str:

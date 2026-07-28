@@ -7,7 +7,7 @@
 ### 📦 Từ GitHub (không cần PyPI)
 
 ```bash
-pip install git+https://github.com/YOUR_USERNAME/ascify-cli.git[full]
+pip install git+https://github.com/Dat09123/ascify.git[full]
 ```
 
 Sau đó chạy:
@@ -19,8 +19,8 @@ ascify image input.jpg
 ### 🏃 Chạy trực tiếp (không cần cài đặt)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ascify-cli.git
-cd ascify-cli
+git clone https://github.com/Dat09123/ascify.git
+cd ascify
 pip install Pillow
 python main.py image input.jpg
 ```

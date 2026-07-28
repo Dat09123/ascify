@@ -4,7 +4,7 @@ Braille: mỗi ký tự đại diện cho 4x2 pixel (8 điểm)
 Block: mỗi ký tự đại diện cho 2x1 pixel (4 mức)
 """
 
-from config import UNICODE_CONFIG
+from .config import UNICODE_CONFIG
 
 # Braille patterns cho 4 hàng x 2 cột
 # Mỗi Braille char có 8 dot positions:

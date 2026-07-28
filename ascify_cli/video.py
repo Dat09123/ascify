@@ -7,7 +7,7 @@ import sys
 import time
 from pathlib import Path
 
-from config import VIDEO_CONFIG, EXPORT_CONFIG
+from .config import VIDEO_CONFIG, EXPORT_CONFIG
 
 
 try:
@@ -67,7 +67,7 @@ def video_to_ascii(
     print(f"🎬 Video: {Path(video_path).name}")
     print(f"   Frames: {total_frames}, FPS: {fps:.1f}")
 
-    from converter import image_to_ascii
+    from .converter import image_to_ascii
     from PIL import Image
 
     frames = []
@@ -117,7 +117,7 @@ def _export_video_frames(
     fps: float,
 ) -> None:
     """Xuất các frame ASCII ra file."""
-    from exporter import export_ascii
+    from .exporter import export_ascii
 
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -144,7 +144,7 @@ def _export_video_frames(
 def _generate_animation_html(frames: list[str], fps: float, width: int) -> str:
     """Tạo HTML với JavaScript animation cho video ASCII."""
     import json
-    from color import strip_ansi  # noqa: E402 — local import để tránh circular
+    from .color import strip_ansi
 
     escaped_frames = []
     for f in frames:
@@ -216,7 +216,7 @@ def play_video_ascii(
     frame_time = 1.0 / fps
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    from converter import image_to_ascii
+    from .converter import image_to_ascii
     from PIL import Image
 
     term_width = shutil.get_terminal_size().columns

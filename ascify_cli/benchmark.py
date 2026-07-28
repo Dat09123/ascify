@@ -6,8 +6,8 @@ Benchmark các cấu hình khác nhau để tối ưu tốc độ
 import time
 from PIL import Image
 
-from config import PERFORMANCE_CONFIG
-from converter import image_to_ascii
+from .config import PERFORMANCE_CONFIG
+from .converter import image_to_ascii
 
 
 def benchmark_image(

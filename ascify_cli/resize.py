@@ -4,7 +4,7 @@ Sử dụng Pillow để resize giữ/gỡ bỏ tỷ lệ khung hình
 """
 
 from PIL import Image
-from config import IMAGE_CONFIG
+from .config import IMAGE_CONFIG
 
 
 def resize_image(

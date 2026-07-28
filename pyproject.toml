@@ -28,12 +28,10 @@ video = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ascify-cli/ascify-cli"
+Homepage = "https://github.com/Dat09123/ascify"
 
 [project.scripts]
-ascify = "main:main"
+ascify = "ascify_cli.main:main"
 
 [tool.setuptools.packages.find]
-include = ["main", "config", "charset", "resize", "grayscale", "color",
-           "unicode_mode", "converter", "video", "webcam", "exporter",
-           "benchmark", "cli"]
+include = ["ascify_cli"]

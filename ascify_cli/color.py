@@ -5,7 +5,7 @@ Hỗ trợ 24-bit true color trong terminal
 
 import re
 
-from config import COLOR_CONFIG
+from .config import COLOR_CONFIG
 
 
 def rgb_to_ansi(r: int, g: int, b: int, background: bool = False) -> str:

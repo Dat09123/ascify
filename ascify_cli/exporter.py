@@ -5,7 +5,7 @@ Hỗ trợ: txt, html, png, ansi
 
 from pathlib import Path
 
-from config import EXPORT_CONFIG
+from .config import EXPORT_CONFIG
 
 
 def export_ascii(
@@ -46,7 +46,7 @@ def export_ascii(
 
 def _export_txt(ascii_art: str, output_path: Path, **kwargs) -> str:
     """Xuất ra file .txt thuần."""
-    from color import strip_ansi
+    from .color import strip_ansi
 
     encoding = EXPORT_CONFIG["txt"].get("encoding", "utf-8")
     newline = EXPORT_CONFIG["txt"].get("newline", "\n")
@@ -76,7 +76,7 @@ def _export_ansi(ascii_art: str, output_path: Path, **kwargs) -> str:
 
 def _export_html(ascii_art: str, output_path: Path, **kwargs) -> str:
     """Xuất ra file .html với màu sắc."""
-    from color import strip_ansi
+    from .color import strip_ansi
 
     html_config = {**EXPORT_CONFIG["html"], **kwargs}
 
@@ -167,7 +167,7 @@ def _ansi_to_html(text: str) -> str:
 
 def _export_png(ascii_art: str, output_path: Path, **kwargs) -> str:
     """Xuất ra file .png sử dụng Pillow, giữ nguyên màu sắc."""
-    from color import iter_colored_chars, strip_ansi
+    from .color import iter_colored_chars, strip_ansi
     from PIL import Image, ImageDraw, ImageFont
 
     png_config = {**EXPORT_CONFIG["png"], **kwargs}

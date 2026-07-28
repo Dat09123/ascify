@@ -9,7 +9,7 @@ import threading
 from dataclasses import dataclass, field
 from queue import Queue
 
-from config import VIDEO_CONFIG
+from .config import VIDEO_CONFIG
 
 
 try:
@@ -81,7 +81,7 @@ class WebcamASCII:
 
     def _processing_loop(self) -> None:
         """Vòng lặp xử lý frame từ webcam."""
-        from converter import image_to_ascii
+        from .converter import image_to_ascii
         from PIL import Image
 
         prev_time = time.time()

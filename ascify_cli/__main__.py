@@ -1,6 +1,5 @@
 """
-main.py - Wrapper để chạy: python main.py ... (backward compat)
-Dùng: python -m ascify_cli hoặc ascify
+__main__.py - Cho phép chạy: python -m ascify_cli
 """
 
 import sys

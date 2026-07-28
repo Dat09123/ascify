@@ -7,7 +7,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from config import CHARSET_CONFIG, COLOR_CONFIG, VIDEO_CONFIG, EXPORT_CONFIG, IMAGE_CONFIG
+from .config import CHARSET_CONFIG, COLOR_CONFIG, VIDEO_CONFIG, EXPORT_CONFIG, IMAGE_CONFIG
 
 
 def create_parser() -> argparse.ArgumentParser:
