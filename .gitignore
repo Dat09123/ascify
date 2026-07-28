@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual env
+venv/
+.env/
+
+# Project specific
+output/
+assets/test_image.png
+assets/color_test.png
+
+# OS
+.DS_Store
+Thumbs.db
