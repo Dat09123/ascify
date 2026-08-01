@@ -43,7 +43,7 @@ ascify image input.jpg
 ```bash
 git clone https://github.com/Dat09123/ascify.git
 cd ascify
-pip install Pillow
+pip install -e .                     # cài đầy đủ deps (Pillow, colorama, ...)
 python main.py image input.jpg        # hoặc: python -m ascify_cli image input.jpg
 ```
 
