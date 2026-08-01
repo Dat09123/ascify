@@ -39,10 +39,11 @@ class WebcamASCII:
         camera_id: int | None = None,
         width: int = 80,
         charset_name: str = "standard",
-        invert: bool = False,
+        invert: bool | None = None,
         enable_color: bool = True,
         braille_mode: bool = False,
         block_mode: bool = False,
+        force_color: bool = False,
     ):
         if not CV2_AVAILABLE:
             raise ImportError("OpenCV không khả dụng. Cài: pip install opencv-python")
@@ -54,6 +55,7 @@ class WebcamASCII:
         self.enable_color = enable_color
         self.braille_mode = braille_mode
         self.block_mode = block_mode
+        self.force_color = force_color
         self.state = WebcamState()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
@@ -109,6 +111,7 @@ class WebcamASCII:
                 enable_color=self.enable_color,
                 braille_mode=self.braille_mode,
                 block_mode=self.block_mode,
+                force_color=self.force_color,
             )
 
             with self._lock:
@@ -127,10 +130,11 @@ def run_webcam_interactive(
     camera_id: int | None = None,
     width: int = 80,
     charset_name: str = "standard",
-    invert: bool = False,
+    invert: bool | None = None,
     enable_color: bool = True,
     braille_mode: bool = False,
     block_mode: bool = False,
+    force_color: bool = False,
 ) -> None:
     """Chạy webcam ASCII interactive trên terminal.
 
@@ -155,6 +159,7 @@ def run_webcam_interactive(
         enable_color=enable_color,
         braille_mode=braille_mode,
         block_mode=block_mode,
+        force_color=force_color,
     )
 
     if not cam.start():

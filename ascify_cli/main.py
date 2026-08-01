@@ -70,6 +70,7 @@ def cmd_image(args) -> None:
         enable_color=enable_color,
         braille_mode=args.braille,
         block_mode=args.block,
+        force_color=bool(args.color),
     )
 
     # Output
@@ -102,7 +103,7 @@ def cmd_video(args) -> None:
             input_path,
             width=args.width,
             charset_name=args.charset,
-            invert=False,
+            invert=None,
             enable_color=enable_color,
         )
     else:
@@ -111,7 +112,7 @@ def cmd_video(args) -> None:
             input_path,
             width=args.width,
             charset_name=args.charset,
-            invert=False,
+            invert=None,
             enable_color=enable_color,
             max_frames=args.max_frames,
             frame_skip=args.frame_skip,
@@ -130,10 +131,11 @@ def cmd_webcam(args) -> None:
         camera_id=args.camera_id,
         width=args.width,
         charset_name=args.charset,
-        invert=False,
+        invert=None,
         enable_color=enable_color,
         braille_mode=args.braille,
         block_mode=args.block,
+        force_color=bool(args.color),
     )
 
 

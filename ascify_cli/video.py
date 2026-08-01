@@ -22,7 +22,7 @@ def video_to_ascii(
     video_path: str,
     width: int = 80,
     charset_name: str = "standard",
-    invert: bool = False,
+    invert: bool | None = None,
     enable_color: bool = True,
     max_frames: int | None = None,
     frame_skip: int | None = None,
@@ -187,7 +187,7 @@ def play_video_ascii(
     video_path: str,
     width: int = 80,
     charset_name: str = "standard",
-    invert: bool = False,
+    invert: bool | None = None,
     enable_color: bool = True,
     fps_limit: int | None = None,
 ) -> None:
