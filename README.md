@@ -49,6 +49,22 @@ python main.py image input.jpg        # hoặc: python -m ascify_cli image input
 
 > 💡 **Gợi ý:** dùng terminal hỗ trợ màu 24-bit (Windows Terminal, iTerm2, GNOME Terminal, VS Code) để xem đúng màu.
 
+### 🪟 Chạy trên Windows
+
+Ascify hỗ trợ Windows (10/11) — màu ANSI tự bật qua `colorama` khi khởi động, không cần cấu hình gì thêm.
+
+```powershell
+# PowerShell / cmd — cài từ GitHub
+pip install git+https://github.com/Dat09123/ascify.git
+ascify image photo.jpg
+```
+
+**Mẹo cho Windows:**
+- Dùng **Windows Terminal** (thay vì cmd cũ) để hiển thị đúng màu 24-bit + braille Unicode.
+- Font nên là **Cascadia Mono** hoặc **Consolas** (hỗ trợ braille/block Unicode).
+- Nếu text bị lỗi font trên cmd cũ: đổi font sang TrueType (`Cascadia Mono`) và gõ `chcp 65001` để dùng UTF-8.
+- Video/webcam: cài với `[full]` extra (OpenCV tương thích Windows).
+
 ---
 
 ## 🚀 Bắt đầu nhanh

@@ -13,6 +13,10 @@ from .cli import parse_args, resolve_color
 
 def main() -> None:
     """Entry point chính."""
+    # Bật ANSI trên Windows (no-op trên Linux/macOS)
+    from .color import init_ansi
+    init_ansi()
+
     args = parse_args()
 
     if args.command == "image":

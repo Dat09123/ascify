@@ -4,8 +4,33 @@ Hỗ trợ 24-bit true color trong terminal
 """
 
 import re
+import sys
 
 from .config import COLOR_CONFIG
+
+
+def init_ansi() -> None:
+    """Bật hỗ trợ ANSI escape codes trên Windows (cmd.exe/PowerShell cũ).
+
+    Linux/macOS và Windows Terminal mới đã hỗ trợ ANSI mặc định nên hàm này
+    là no-op. Trên Windows cũ, dùng colorama (đã là dependency trong
+    pyproject.toml) để bật VT processing — không có màu sẽ vỡ/ra ký tự rác.
+
+    safe: không raise lỗi nếu colorama không cài.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import colorama
+
+        # colorama >= 0.4.6 có just_fix_windows_console (không wrap streams)
+        fix = getattr(colorama, "just_fix_windows_console", None)
+        if fix:
+            fix()
+        else:
+            colorama.init()
+    except ImportError:
+        pass  # Không có colorama → giữ nguyên hành vi cũ, không crash
 
 
 def rgb_to_ansi(r: int, g: int, b: int, background: bool = False) -> str:
