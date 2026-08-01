@@ -11,8 +11,6 @@ venv/
 
 # Project specific
 output/
-assets/test_image.png
-assets/color_test.png
 
 # OS
 .DS_Store
