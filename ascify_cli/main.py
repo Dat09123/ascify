@@ -35,19 +35,22 @@ def cmd_image(args) -> None:
     from .exporter import export_ascii
     from .charset import list_charsets
 
-    # Kiểm tra file
-    input_path = args.input
-    if not os.path.exists(input_path):
-        print(f"❌ File không tồn tại: {input_path}")
-        sys.exit(1)
-
-    # List charsets
+    # List charsets — không cần file ảnh, check TRƯỚC khi validate input
     if args.list_charsets:
         print("\n📖 Các bộ ký tự có sẵn:\n")
         for name, charset in list_charsets().items():
             print(f"  {name:<12} {charset}")
         print()
         return
+
+    # Kiểm tra file
+    input_path = args.input
+    if not input_path:
+        print("❌ Thiếu file ảnh đầu vào")
+        sys.exit(1)
+    if not os.path.exists(input_path):
+        print(f"❌ File không tồn tại: {input_path}")
+        sys.exit(1)
 
     # Load ảnh
     try:

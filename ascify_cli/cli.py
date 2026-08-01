@@ -28,7 +28,8 @@ def create_parser() -> argparse.ArgumentParser:
 
     # ===== IMAGE =====
     img_parser = subparsers.add_parser("image", help="Chuyển ảnh → ASCII")
-    img_parser.add_argument("input", help="Đường dẫn ảnh đầu vào")
+    # input optional vì --list-charsets không cần file ảnh
+    img_parser.add_argument("input", nargs="?", help="Đường dẫn ảnh đầu vào")
     img_parser.add_argument("-o", "--output", help="Đường dẫn đầu ra (không extension)")
     img_parser.add_argument("-f", "--format", choices=EXPORT_CONFIG["format"], default=None,
                             help="Định dạng xuất (txt, html, png, ansi)")
