@@ -44,6 +44,8 @@ def create_parser() -> argparse.ArgumentParser:
                             default=None, help="Bộ ký tự")
     img_parser.add_argument("-i", "--invert", action="store_true", default=None,
                             help="Đảo ngược màu")
+    img_parser.add_argument("--no-invert", action="store_true", default=None,
+                            help="Ép KHÔNG đảo ngược (bỏ auto-invert trên ảnh tối)")
     img_parser.add_argument("-b", "--braille", action="store_true",
                             help="Chế độ Braille Unicode")
     img_parser.add_argument("--block", action="store_true",

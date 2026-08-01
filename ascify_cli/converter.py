@@ -36,7 +36,7 @@ def image_to_ascii(
         width: Chiều rộng ASCII (ký tự)
         height: Chiều cao ASCII (ký tự)
         charset_name: Tên bộ ký tự
-        invert: Đảo ngược màu
+        invert: Đảo ngược màu (None = tự đảo nếu ảnh tối chiếm đa số)
         enable_color: Bật màu ANSI
         braille_mode: Dùng Braille Unicode
         block_mode: Dùng block Unicode
@@ -60,8 +60,12 @@ def image_to_ascii(
 
     # Chuẩn: ASCII
     gray = to_grayscale(image)
-    pixels = get_pixels(gray)
+    raw_pixels = get_pixels(gray)
+    if invert is None:
+        invert = _is_dark_dominant(raw_pixels)
+    pixels = _stretch_contrast(raw_pixels)
 
+    use_color = enable_color and image.mode == "RGB" and (force_color or not invert)
     lines = []
     for y in range(len(pixels)):
         line_chars = []
@@ -69,7 +73,7 @@ def image_to_ascii(
             value = pixels[y][x] / 255.0
             char = get_char(value, charset_name, invert)
 
-            if enable_color and image.mode == "RGB":
+            if use_color:
                 r, g, b = image.getpixel((x, y))[:3]
                 char = colorize(char, r, g, b)
 
@@ -94,7 +98,10 @@ def image_to_ascii_with_pixels(
     image = resize_image(image, width, height)
     w, h = image.size
     gray = to_grayscale(image)
-    pixels = get_pixels(gray)
+    raw_pixels = get_pixels(gray)
+    if invert is None:
+        invert = _is_dark_dominant(raw_pixels)
+    pixels = _stretch_contrast(raw_pixels)
 
     grid = []
     colors = []

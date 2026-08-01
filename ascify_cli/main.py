@@ -60,13 +60,21 @@ def cmd_image(args) -> None:
     # Xác định màu
     enable_color = resolve_color(args)
 
+    # Xác định invert: -i ưu tiên, kế đến --no-invert, còn lại None (auto)
+    if args.invert:
+        invert = True
+    elif args.no_invert:
+        invert = False
+    else:
+        invert = None
+
     # Convert
     ascii_art = image_to_ascii(
         image,
         width=args.width,
         height=args.height,
         charset_name=args.charset,
-        invert=args.invert,
+        invert=invert,
         enable_color=enable_color,
         braille_mode=args.braille,
         block_mode=args.block,

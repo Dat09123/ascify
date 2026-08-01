@@ -18,6 +18,29 @@ except ImportError:
     CV2_AVAILABLE = False
 
 
+def _resolve_invert_for_video(cap, invert: bool | None) -> bool:
+    """Chốt auto-invert một lần từ frame đầu để tránh nhấp nháy polarity.
+
+    Nếu `invert` là None (auto), xác định dựa trên frame đầu tiên rồi giữ
+    nguyên cho cả video, thay vì quyết định từng frame (dễ flicker khi
+    độ sáng cảnh dao động quanh ngưỡng).
+    """
+    if invert is not None:
+        return invert
+    from .converter import _is_dark_dominant
+    from .grayscale import get_pixels, to_grayscale
+    from PIL import Image
+
+    ret, frame = cap.read()
+    if not ret:
+        return False
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    pil = Image.fromarray(frame_rgb)
+    invert = _is_dark_dominant(get_pixels(to_grayscale(pil)))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Quay lại frame 0
+    return invert
+
+
 def video_to_ascii(
     video_path: str,
     width: int = 80,
@@ -60,6 +83,8 @@ def video_to_ascii(
     if not cap.isOpened():
         print(f"❌ Không thể mở video: {video_path}")
         return []
+
+    invert = _resolve_invert_for_video(cap, invert)
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -211,6 +236,8 @@ def play_video_ascii(
     if not cap.isOpened():
         print(f"❌ Không thể mở video: {video_path}")
         return
+
+    invert = _resolve_invert_for_video(cap, invert)
 
     fps = cap.get(cv2.CAP_PROP_FPS) if fps_limit is None else fps_limit
     frame_time = 1.0 / fps
