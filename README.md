@@ -38,7 +38,7 @@ Sau đó chạy:
 ascify image input.jpg
 ```
 
-### Chạy trực tiếp (không cần cài đặt)
+### Chạy từ source (development mode)
 
 ```bash
 git clone https://github.com/Dat09123/ascify.git
