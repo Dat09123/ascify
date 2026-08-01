@@ -68,17 +68,56 @@ def cmd_image(args) -> None:
     else:
         invert = None
 
-    # Convert
+    # Auto chọn chế độ theo độ phân giải:
+    #   Ảnh nhỏ (icon/logo) → ASCII
+    #   Ảnh lớn (ảnh chụp, art cao phân giải) → Unicode/Braille
+    width = args.width
+    height = args.height
+    braille_mode = args.braille
+    block_mode = args.block
+    # --charset chỉ có ý nghĩa với ASCII, nên nó ngầm ép dùng ASCII
+    if not braille_mode and not block_mode and not args.ascii and not args.charset:
+        w, h = image.size
+        if max(w, h) >= IMAGE_CONFIG.get("auto_unicode_min_size", 400):
+            braille_mode = True
+            # Ảnh lớn chi tiết: tự fit CẢ chiều rộng lẫn chiều cao vào terminal
+            # (trước chỉ fit chiều rộng → ảnh dọc tràn màn hình "quá to khó nhìn")
+            if width is None and height is None:
+                import shutil
+                term = shutil.get_terminal_size()
+                # os.terminal_size có thuộc tính .columns và .lines (không phải .rows)
+                max_cols = max(10, term.columns - 2)
+                max_rows = max(10, term.lines - 4)
+                # Braille: grid rows ≈ orig_h * width / (2 * orig_w)
+                # (1 ký tự braille = block 2x4 px)
+                width_fit_rows = int(max_rows * 2 * w / h) if h else max_cols
+                width = min(max_cols, width_fit_rows, IMAGE_CONFIG["max_width"])
+                width = max(10, width)
+
+    # Ảnh màu (photo) → hiện true color thay vì auto-invert đen trắng:
+    # chuẩn chafa/viu, ảnh chụp nhìn rõ ngay. Chỉ khi user không ép
+    # (-i/--no-invert/--no-color). Áp dụng cho cả -b/--block rõ ràng.
+    from .converter import _is_colorful
+    if invert is None and enable_color and _is_colorful(image):
+        invert = False
+
+    # Convert — clamp ngưỡng dot braille về 0-255
+    threshold = args.threshold
+    if threshold is not None:
+        threshold = max(0, min(255, threshold))
+
     ascii_art = image_to_ascii(
         image,
-        width=args.width,
-        height=args.height,
+        width=width,
+        height=height,
         charset_name=args.charset,
         invert=invert,
         enable_color=enable_color,
-        braille_mode=args.braille,
-        block_mode=args.block,
+        braille_mode=braille_mode,
+        block_mode=block_mode,
         force_color=bool(args.color),
+        dither=None if not args.no_dither else False,
+        threshold=threshold,
     )
 
     # Output

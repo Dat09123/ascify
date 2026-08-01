@@ -23,6 +23,16 @@ IMAGE_CONFIG = {
     "max_height": 200,
     "keep_aspect_ratio": True,
     "background_color": (0, 0, 0),
+    # Ảnh có cạnh nhỏ hơn ngưỡng này (icon, logo, meme nhỏ) → dùng ASCII.
+    # Ảnh lớn hơn (ảnh chụp, art cao phân giải) → tự chuyển sang Unicode/Braille.
+    "auto_unicode_min_size": 400,
+    # Phân loại ảnh "nhiều màu" (photo) để tự bật màu true-color:
+    #   auto_color_min_saturation:  bão hoà HSV trung bình tối thiểu (0-255)
+    #   auto_color_min_hue_buckets: số hue buckets riêng biệt tối thiểu
+    #     (photo thật có NHIỀU hue; anime/manga palette giới hạn → ít hue,
+    #      dù saturation cao vẫn giữ negative style)
+    "auto_color_min_saturation": 40,
+    "auto_color_min_hue_buckets": 12,
 
 }
 
@@ -95,4 +105,6 @@ UNICODE_CONFIG = {
     "braille_mode": False,
     "block_mode": False,
     "use_emoji": False,
+    "braille_dither": True,    # Dithering Floyd-Steinberg cho braille (giữ chi tiết)
+    "braille_threshold": 128,  # Ngưỡng bật/tắt dot braille (0-255)
 }

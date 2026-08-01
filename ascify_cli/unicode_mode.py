@@ -16,12 +16,13 @@ from .config import UNICODE_CONFIG
 BRAILLE_BASE = 0x2800
 
 
-def pixels_to_braille(pixels_4x2: list[list[int]], invert: bool = False) -> str:
+def pixels_to_braille(pixels_4x2: list[list[int]], invert: bool = False, threshold: int = 128) -> str:
     """Chuyển block 4x2 pixel thành ký tự Braille.
 
     Args:
         pixels_4x2: List 4 hàng, mỗi hàng 2 giá trị (0–255)
         invert: True = dot khi pixel tối (phong cách negative, nền đậm → ⣿)
+        threshold: Ngưỡng bật/tắt dot (0–255)
 
     Returns:
         Ký tự Braille Unicode tương ứng
@@ -35,7 +36,7 @@ def pixels_to_braille(pixels_4x2: list[list[int]], invert: bool = False) -> str:
     #   6 7
 
     def dot_on(v: int) -> bool:
-        return v < 128 if invert else v > 128
+        return v < threshold if invert else v > threshold
 
     if dot_on(pixels_4x2[0][0]): dots |= 0x01
     if dot_on(pixels_4x2[1][0]): dots |= 0x02
@@ -49,7 +50,12 @@ def pixels_to_braille(pixels_4x2: list[list[int]], invert: bool = False) -> str:
     return chr(BRAILLE_BASE + dots)
 
 
-def to_braille_art(pixels: list[list[int]], invert: bool = False) -> list[list[str]]:
+def to_braille_art(
+    pixels: list[list[int]],
+    invert: bool = False,
+    threshold: int = 128,
+    dither: bool = False,
+) -> list[list[str]]:
     """Chuyển ma trận pixel thành ma trận ký tự Braille.
 
     Kết quả có kích thước (h//4) x (w//2)
@@ -57,10 +63,15 @@ def to_braille_art(pixels: list[list[int]], invert: bool = False) -> list[list[s
     Args:
         pixels: Ma trận pixel 2D (h x w)
         invert: Đảo ngược (tối → dot)
+        threshold: Ngưỡng bật/tắt dot (0–255)
+        dither: Dithering Floyd-Steinberg để giữ chi tiết gradient
 
     Returns:
         Ma trận ký tự Braille
     """
+    if dither:
+        pixels = _floyd_steinberg(pixels, threshold)
+
     h = len(pixels)
     w = len(pixels[0]) if h > 0 else 0
     result = []
@@ -74,10 +85,57 @@ def to_braille_art(pixels: list[list[int]], invert: bool = False) -> list[list[s
                 [pixels[y + 2][x], pixels[y + 2][x + 1]],
                 [pixels[y + 3][x], pixels[y + 3][x + 1]],
             ]
-            row.append(pixels_to_braille(block, invert))
+            row.append(pixels_to_braille(block, invert, threshold))
         result.append(row)
 
     return result
+
+
+def _floyd_steinberg(pixels: list[list[int]], threshold: int = 128) -> list[list[int]]:
+    """Dithering Floyd-Steinberg: chuyển gradient mượt → chấm nhị phân rõ chi tiết.
+
+    Vì dot braille chỉ bật/tắt, dithering phân tán sai số lượng tử hóa sang
+    pixel lân cận giúp ảnh chi tiết (manga, wallpaper) hiển thị rõ hơn nhiều.
+
+    Args:
+        pixels: Ma trận pixel 2D (h x w)
+        threshold: Ngưỡng bật/tắt (0–255)
+
+    Returns:
+        Ma trận pixel nhị phân 0/255
+    """
+    h = len(pixels)
+    w = len(pixels[0]) if h > 0 else 0
+    if h == 0 or w == 0:
+        return pixels
+
+    out = [row[:] for row in pixels]
+    for y in range(h):
+        for x in range(w):
+            old = out[y][x]
+            new = 255 if old > threshold else 0
+            out[y][x] = new
+            err = old - new
+            if x + 1 < w:
+                out[y][x + 1] += _diffuse(err, 7)
+            if y + 1 < h:
+                if x > 0:
+                    out[y + 1][x - 1] += _diffuse(err, 3)
+                out[y + 1][x] += _diffuse(err, 5)
+                if x + 1 < w:
+                    out[y + 1][x + 1] += _diffuse(err, 1)
+    return out
+
+
+def _diffuse(err: int, weight: int) -> int:
+    """Phân tán sai số theo trọng số Floyd-Steinberg, làm tròn thay vì floor.
+
+    // với số âm thiên về âm (floor), gây lệch nhẹ; round về 0 đúng hơn.
+    """
+    v = err * weight
+    if v >= 0:
+        return (v + 8) // 16
+    return -((-v + 8) // 16)
 
 
 def to_block_art(pixels: list[list[int]], invert: bool = False) -> list[list[str]]:

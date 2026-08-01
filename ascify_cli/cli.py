@@ -50,6 +50,12 @@ def create_parser() -> argparse.ArgumentParser:
                             help="Chế độ Braille Unicode")
     img_parser.add_argument("--block", action="store_true",
                             help="Chế độ Block Unicode")
+    img_parser.add_argument("--ascii", action="store_true",
+                            help="Ép dùng ASCII kể cả ảnh lớn (bỏ auto Unicode)")
+    img_parser.add_argument("--no-dither", action="store_true",
+                            help="Tắt dithering braille (mặc định bật)")
+    img_parser.add_argument("--threshold", type=int, default=None,
+                            help="Ngưỡng bật/tắt dot braille 0-255 (mặc định 128)")
     img_parser.add_argument("--list-charsets", action="store_true",
                             help="Liệt kê các bộ ký tự có sẵn")
 
