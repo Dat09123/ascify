@@ -5,10 +5,10 @@ Entry point: CLI + các chức năng chính
 
 import sys
 import os
-from pathlib import Path
 
 from .config import IMAGE_CONFIG, EXPORT_CONFIG
 from .cli import parse_args, resolve_color
+from .color import supports_truecolor
 
 
 def main() -> None:
@@ -64,8 +64,8 @@ def cmd_image(args) -> None:
         print(f"❌ Lỗi đọc ảnh: {e}")
         sys.exit(1)
 
-    # Xác định màu
-    enable_color = resolve_color(args)
+    # Xác định màu (tự tắt nếu terminal không hỗ trợ truecolor)
+    enable_color = _finalize_color(args, resolve_color(args))
 
     # Xác định invert: -i ưu tiên, kế đến --no-invert, còn lại None (auto)
     if args.invert:
@@ -104,14 +104,12 @@ def cmd_image(args) -> None:
     # Ảnh màu (photo) → hiện true color thay vì auto-invert đen trắng:
     # chuẩn chafa/viu, ảnh chụp nhìn rõ ngay. Chỉ khi user không ép
     # (-i/--no-invert/--no-color). Áp dụng cho cả -b/--block rõ ràng.
-    from .converter import _is_colorful
-    if invert is None and enable_color and _is_colorful(image):
+    from .converter import is_colorful
+    if invert is None and enable_color and is_colorful(image):
         invert = False
 
-    # Convert — clamp ngưỡng dot braille về 0-255
+    # Convert (ngưỡng dot braille được clamp trong converter)
     threshold = args.threshold
-    if threshold is not None:
-        threshold = max(0, min(255, threshold))
 
     ascii_art = image_to_ascii(
         image,
@@ -125,6 +123,7 @@ def cmd_image(args) -> None:
         force_color=bool(args.color),
         dither=None if not args.no_dither else False,
         threshold=threshold,
+        background=bool(args.bg),
     )
 
     # Output
@@ -149,7 +148,7 @@ def cmd_video(args) -> None:
         print(f"❌ File không tồn tại: {input_path}")
         sys.exit(1)
 
-    enable_color = resolve_color(args)
+    enable_color = _finalize_color(args, resolve_color(args))
 
     if args.play:
         # Phát realtime
@@ -159,6 +158,10 @@ def cmd_video(args) -> None:
             charset_name=args.charset,
             invert=None,
             enable_color=enable_color,
+            braille_mode=args.braille,
+            block_mode=args.block,
+            dither=None if not args.no_dither else False,
+            threshold=args.threshold,
         )
     else:
         # Xuất frames
@@ -172,6 +175,10 @@ def cmd_video(args) -> None:
             frame_skip=args.frame_skip,
             export_format=args.format,
             output_dir=args.output_dir,
+            braille_mode=args.braille,
+            block_mode=args.block,
+            dither=None if not args.no_dither else False,
+            threshold=args.threshold,
         )
 
 
@@ -179,7 +186,7 @@ def cmd_webcam(args) -> None:
     """Xử lý lệnh 'webcam'."""
     from .webcam import run_webcam_interactive
 
-    enable_color = resolve_color(args)
+    enable_color = _finalize_color(args, resolve_color(args))
 
     run_webcam_interactive(
         camera_id=args.camera_id,
@@ -190,6 +197,8 @@ def cmd_webcam(args) -> None:
         braille_mode=args.braille,
         block_mode=args.block,
         force_color=bool(args.color),
+        dither=None if not args.no_dither else False,
+        threshold=args.threshold,
     )
 
 
@@ -205,7 +214,19 @@ def cmd_benchmark(args) -> None:
     benchmark_fps(
         input_path,
         duration=args.duration,
+        iterations=args.iterations,
     )
+
+
+def _finalize_color(args, enable_color: bool) -> bool:
+    """Tự tắt màu nếu terminal có vẻ không hỗ trợ truecolor.
+
+    Chỉ tắt khi user KHÔNG ép màu bằng -c (ép thì tôn trọng).
+    """
+    if enable_color and not getattr(args, "color", False) and not supports_truecolor():
+        print("⚠️ Terminal có vẻ không hỗ trợ màu 24-bit — đã tắt màu (ép bằng -c).")
+        return False
+    return enable_color
 
 
 if __name__ == "__main__":

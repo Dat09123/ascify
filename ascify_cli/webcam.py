@@ -7,6 +7,7 @@ import sys
 import time
 import threading
 from dataclasses import dataclass, field
+from pathlib import Path
 from queue import Queue
 
 from .config import VIDEO_CONFIG
@@ -28,6 +29,7 @@ class WebcamState:
     frame_count: int = 0
     current_ascii: str = ""
     error: str | None = None
+    message: str = ""          # Thông báo tạm thời (snapshot...) hiển thị ở status line
     _queue: Queue = field(default_factory=Queue)
 
 
@@ -44,6 +46,8 @@ class WebcamASCII:
         braille_mode: bool = False,
         block_mode: bool = False,
         force_color: bool = False,
+        dither: bool | None = None,
+        threshold: int | None = None,
     ):
         if not CV2_AVAILABLE:
             raise ImportError("OpenCV không khả dụng. Cài: pip install opencv-python")
@@ -56,6 +60,8 @@ class WebcamASCII:
         self.braille_mode = braille_mode
         self.block_mode = block_mode
         self.force_color = force_color
+        self.dither = dither
+        self.threshold = threshold
         self.state = WebcamState()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
@@ -112,6 +118,8 @@ class WebcamASCII:
                 braille_mode=self.braille_mode,
                 block_mode=self.block_mode,
                 force_color=self.force_color,
+                dither=self.dither,
+                threshold=self.threshold,
             )
 
             with self._lock:
@@ -126,6 +134,49 @@ class WebcamASCII:
             return None
 
 
+def _stdin_listener(stop_flag: threading.Event, on_snapshot) -> None:
+    """Lắng nghe phím tắt, hoạt động tức thì (raw mode) trên cả POSIX và Windows.
+
+    - POSIX: `tty.setcbreak` tắt canonical mode (vẫn giữ Ctrl+C interrupt).
+    - Windows: `msvcrt.getwch` đọc ký tự trực tiếp.
+    - stdin không phải TTY (pipe): fallback đọc từng dòng rồi thoát.
+    """
+    import os
+
+    if os.name == "nt" and sys.stdin.isatty():
+        import msvcrt
+        while True:
+            key = msvcrt.getwch().lower()
+            if key == "s":
+                on_snapshot()
+            elif key == "q":
+                stop_flag.set()
+                return
+
+    if sys.stdin.isatty():
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setcbreak(fd)
+            while True:
+                key = sys.stdin.read(1).lower()
+                if not key:
+                    return
+                if key == "s":
+                    on_snapshot()
+                elif key == "q":
+                    stop_flag.set()
+                    return
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    else:
+        # stdin bị pipe: không thể phím tắt tức thì → chờ EOF rồi thoát
+        for _ in sys.stdin:
+            pass
+
+
 def run_webcam_interactive(
     camera_id: int | None = None,
     width: int = 80,
@@ -135,6 +186,8 @@ def run_webcam_interactive(
     braille_mode: bool = False,
     block_mode: bool = False,
     force_color: bool = False,
+    dither: bool | None = None,
+    threshold: int | None = None,
 ) -> None:
     """Chạy webcam ASCII interactive trên terminal.
 
@@ -160,17 +213,46 @@ def run_webcam_interactive(
         braille_mode=braille_mode,
         block_mode=block_mode,
         force_color=force_color,
+        dither=dither,
+        threshold=threshold,
     )
 
     if not cam.start():
         print(f"❌ {cam.state.error}")
         return
 
+    # Phím tắt: 's' = snapshot PNG, 'q' = thoát (Ctrl+C vẫn hoạt động)
+    stop_flag = threading.Event()
+
+    def take_snapshot() -> None:
+        frame = cam.get_frame()
+        if not frame:
+            cam.state.message = "⚠️ Chưa có frame nào để chụp."
+            return
+        from .exporter import export_ascii
+
+        snap_dir = Path(VIDEO_CONFIG.get("snapshot_dir", "output/"))
+        snap_dir.mkdir(parents=True, exist_ok=True)
+        path = snap_dir / f"webcam_{time.strftime('%Y%m%d_%H%M%S')}.png"
+        # Chặn thông báo "Đã xuất" của exporter (sẽ hiện qua status line thay vì
+        # chèn giữa frame đang hiển thị)
+        import contextlib
+        import io
+        with contextlib.redirect_stdout(io.StringIO()):
+            export_ascii(frame, str(path), "png")
+        cam.state.message = f"📸 Đã chụp: {path}"
+
+    threading.Thread(
+        target=_stdin_listener,
+        args=(stop_flag, take_snapshot),
+        daemon=True,
+    ).start()
+
     print(f"\n📷 Webcam ASCII - ID: {camera_id or VIDEO_CONFIG.get('webcam_id', 0)}")
-    print("   Nhấn Ctrl+C để dừng.\n")
+    print("   Phím: [s] chụp PNG · [q] thoát · Ctrl+C dừng\n")
 
     try:
-        while True:
+        while not stop_flag.is_set():
             frame = cam.get_frame()
             if frame:
                 sys.stdout.write("\033[H\033[J")  # Clear screen
@@ -179,6 +261,9 @@ def run_webcam_interactive(
                     sys.stdout.write(f"\n\033[0m📷 FPS: {cam.state.fps:.1f} | Frames: {cam.state.frame_count}")
                 else:
                     sys.stdout.write(f"\n📷 FPS: {cam.state.fps:.1f} | Frames: {cam.state.frame_count}")
+                if cam.state.message:
+                    sys.stdout.write(f"  {cam.state.message}")
+                    cam.state.message = ""
                 sys.stdout.flush()
             time.sleep(0.03)  # ~30fps display
     except KeyboardInterrupt:

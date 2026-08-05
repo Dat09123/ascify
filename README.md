@@ -75,9 +75,11 @@ ascify image photo.jpg                # ảnh chụp → Braille + màu + dither
 ascify image anime.png                # line-art/anime → negative style
 ascify image input.jpg -w 120         # chỉ định chiều rộng (số cột ký tự)
 ascify image input.jpg -o output      # xuất ra file (mặc định .txt)
+ascify image input.jpg --bg           # tô màu nền (kiểu mosaic)
 ascify video video.mp4 --play         # phát video ASCII realtime
 ascify webcam                         # webcam ASCII realtime
 ascify benchmark input.jpg            # benchmark FPS
+ascify --version                      # xem phiên bản
 ```
 
 ---
@@ -151,6 +153,7 @@ ascify image <file> [options]
 | `--no-invert` | Ép không đảo ngược |
 | `--no-dither` | Tắt dithering braille |
 | `--threshold N` | Ngưỡng dot braille 0-255 (mặc định 128) |
+| `--bg` | Tô màu nền thay vì màu chữ (phù hợp block art kiểu mosaic) |
 | `-o, --output FILE` | Xuất ra file (không cần extension) |
 | `-f, --format FMT` | Định dạng xuất: `txt`, `html`, `png`, `ansi` |
 | `--list-charsets` | Liệt kê bộ ký tự |
@@ -165,10 +168,15 @@ ascify video input.mp4 -w 100 -c
 
 # Phát video ASCII realtime trên terminal
 ascify video input.mp4 --play
+ascify video input.mp4 --play -b -c   # phát ở chế độ Braille + màu
 
 # Webcam ASCII realtime
 ascify webcam -w 100 -c -b            # webcam + braille + màu
 ```
+
+**Phím tắt webcam:** nhấn `s` để chụp snapshot PNG (lưu vào `output/`), `q` để thoát (ngoài Ctrl+C).
+
+> Video/webcam cũng hỗ trợ `--no-dither` và `--threshold` để tinh chỉnh chế độ Braille.
 
 > Yêu cầu `opencv-python` + `numpy` (cài qua `[full]` extra).
 

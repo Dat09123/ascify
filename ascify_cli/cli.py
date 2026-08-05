@@ -5,8 +5,7 @@ Sử dụng argparse để parse arguments
 
 import argparse
 import sys
-from pathlib import Path
-
+from . import __version__
 from .config import CHARSET_CONFIG, COLOR_CONFIG, VIDEO_CONFIG, EXPORT_CONFIG, IMAGE_CONFIG
 
 
@@ -23,6 +22,7 @@ def create_parser() -> argparse.ArgumentParser:
                "  ascify image input.jpg -o out.html  # Xuất HTML",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     subparsers = parser.add_subparsers(dest="command", help="Lệnh")
 
@@ -57,6 +57,8 @@ def create_parser() -> argparse.ArgumentParser:
                             help="Tắt dithering braille (mặc định bật)")
     img_parser.add_argument("--threshold", type=int, default=None,
                             help="Ngưỡng bật/tắt dot braille 0-255 (mặc định 128)")
+    img_parser.add_argument("--bg", action="store_true",
+                            help="Tô màu nền thay vì màu chữ (block art kiểu mosaic)")
     img_parser.add_argument("--list-charsets", action="store_true",
                             help="Liệt kê các bộ ký tự có sẵn")
 
@@ -81,6 +83,14 @@ def create_parser() -> argparse.ArgumentParser:
                             help="Số frame tối đa")
     vid_parser.add_argument("--frame-skip", type=int, default=None,
                             help="Bỏ qua N frame giữa mỗi lần xử lý")
+    vid_parser.add_argument("-b", "--braille", action="store_true",
+                            help="Chế độ Braille Unicode")
+    vid_parser.add_argument("--block", action="store_true",
+                            help="Chế độ Block Unicode")
+    vid_parser.add_argument("--no-dither", action="store_true",
+                            help="Tắt dithering braille (mặc định bật)")
+    vid_parser.add_argument("--threshold", type=int, default=None,
+                            help="Ngưỡng bật/tắt dot braille 0-255 (mặc định 128)")
 
     # ===== WEBCAM =====
     webcam_parser = subparsers.add_parser("webcam", help="Webcam ASCII realtime")
@@ -98,6 +108,10 @@ def create_parser() -> argparse.ArgumentParser:
                                help="Chế độ Braille Unicode")
     webcam_parser.add_argument("--block", action="store_true",
                                help="Chế độ Block Unicode")
+    webcam_parser.add_argument("--no-dither", action="store_true",
+                               help="Tắt dithering braille (mặc định bật)")
+    webcam_parser.add_argument("--threshold", type=int, default=None,
+                               help="Ngưỡng bật/tắt dot braille 0-255 (mặc định 128)")
 
     # ===== BENCHMARK =====
     bench_parser = subparsers.add_parser("benchmark", help="Benchmark hiệu năng")

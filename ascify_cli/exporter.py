@@ -87,9 +87,6 @@ def _export_html(ascii_art: str, output_path: Path, **kwargs) -> str:
 
     # Parse ANSI escape codes → HTML spans
     html_content = _ansi_to_html(ascii_art)
-    plain_text = strip_ansi(ascii_art)
-    lines = plain_text.count("\n") + 1
-    line_height_px = int(font_size.replace("px", "")) + 2
 
     html = f"""<!DOCTYPE html>
 <html lang="vi">
@@ -165,6 +162,24 @@ def _ansi_to_html(text: str) -> str:
     return text
 
 
+def _find_mono_font() -> str | None:
+    """Tìm font monospace hệ thống (Linux/macOS/Windows)."""
+    candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+        "/usr/share/fonts/TTF/DejaVuSansMono.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-R.ttf",
+        "C:/Windows/Fonts/Consola.ttf",
+        "C:/Windows/Fonts/CascadiaMono.ttf",
+        "/System/Library/Fonts/Menlo.ttc",
+        "/System/Library/Fonts/Supplemental/Courier New.ttf",
+    ]
+    for path in candidates:
+        if Path(path).exists():
+            return path
+    return None
+
+
 def _export_png(ascii_art: str, output_path: Path, **kwargs) -> str:
     """Xuất ra file .png sử dụng Pillow, giữ nguyên màu sắc."""
     from .color import iter_colored_chars, strip_ansi
@@ -175,10 +190,13 @@ def _export_png(ascii_art: str, output_path: Path, **kwargs) -> str:
     font_path = png_config.get("font_path")
     bg_color = png_config.get("background_color", (0, 0, 0))
 
-    # Dùng font monospace mặc định hoặc tìm font
+    # Dùng font monospace hệ thống nếu có (tốt hơn font mặc định rất nhỏ của Pillow)
     try:
+        mono_font = _find_mono_font()
         if font_path:
             font = ImageFont.truetype(font_path, font_size)
+        elif mono_font:
+            font = ImageFont.truetype(mono_font, font_size)
         else:
             font = ImageFont.load_default()
     except Exception:

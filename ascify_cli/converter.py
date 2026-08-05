@@ -24,6 +24,7 @@ def image_to_ascii(
     force_color: bool = False,
     dither: bool | None = None,
     threshold: int | None = None,
+    background: bool = False,
 ) -> str:
     """Chuyển đổi ảnh Pillow thành ASCII Art.
 
@@ -45,11 +46,11 @@ def image_to_ascii(
         force_color: Ép bật màu kể cả khi đang ở kiểu negative (invert)
         dither: Dithering Floyd-Steinberg cho braille (None = theo config)
         threshold: Ngưỡng dot braille (None = theo config)
+        background: Tô màu nền thay vì màu chữ (flag --bg)
 
     Returns:
         Chuỗi ASCII Art (có thể chứa escape codes ANSI)
     """
-    # Kiểm tra Unicode mode — chỉ kích hoạt khi được yêu cầu rõ ràng
     if enable_color is None:
         enable_color = COLOR_CONFIG.get("enable", True)
 
@@ -78,9 +79,9 @@ def image_to_ascii(
     w, h = image.size
 
     if use_braille:
-        return _convert_braille(image, enable_color, invert, force_color, dither, threshold)
+        return _convert_braille(image, enable_color, invert, force_color, dither, threshold, background)
     elif use_block:
-        return _convert_block(image, enable_color, invert, force_color)
+        return _convert_block(image, enable_color, invert, force_color, background)
 
     # Chuẩn: ASCII — giữ polarity gốc (không auto-invert như braille),
     # ảnh tối vẫn hiển thị bình thường; dùng -i nếu muốn đảo.
@@ -91,6 +92,9 @@ def image_to_ascii(
     pixels = _stretch_contrast(raw_pixels)
 
     use_color = enable_color and image.mode in ("RGB", "RGBA") and (force_color or not invert)
+    # Preload dữ liệu pixel RGB một lần: getpixel() trong loop chậm hơn rất nhiều
+    rgb_data = list(image.convert("RGB").getdata()) if use_color else None
+
     lines = []
     for y in range(len(pixels)):
         line_chars = []
@@ -99,53 +103,13 @@ def image_to_ascii(
             char = get_char(value, charset_name, invert)
 
             if use_color:
-                r, g, b = image.getpixel((x, y))[:3]
-                char = colorize(char, r, g, b)
+                r, g, b = rgb_data[y * w + x]
+                char = colorize(char, r, g, b, bg=background)
 
             line_chars.append(char)
         lines.append("".join(line_chars))
 
     return "\n".join(lines)
-
-
-def image_to_ascii_with_pixels(
-    image: Image.Image,
-    width: int | None = None,
-    height: int | None = None,
-    charset_name: str | None = None,
-    invert: bool | None = None,
-) -> tuple[list[list[str]], list[list[tuple[int, int, int]]] | None]:
-    """Chuyển ảnh thành grid ASCII và pixel map (cho exporter).
-
-    Returns:
-        Tuple (grid_ascii, grid_colors)
-    """
-    image = resize_image(image, width, height)
-    w, h = image.size
-    gray = to_grayscale(image)
-    raw_pixels = get_pixels(gray)
-    if invert is None:
-        invert = False
-    pixels = _stretch_contrast(raw_pixels)
-
-    grid = []
-    colors = []
-
-    for y in range(len(pixels)):
-        row_chars = []
-        row_colors = []
-        for x in range(len(pixels[y])):
-            value = pixels[y][x] / 255.0
-            char = get_char(value, charset_name, invert)
-            row_chars.append(char)
-            if image.mode == "RGB":
-                row_colors.append(image.getpixel((x, y))[:3])
-            else:
-                row_colors.append((255, 255, 255))
-        grid.append(row_chars)
-        colors.append(row_colors)
-
-    return grid, colors
 
 
 def _convert_braille(
@@ -155,6 +119,7 @@ def _convert_braille(
     force_color: bool = False,
     dither: bool | None = None,
     threshold: int | None = None,
+    background: bool = False,
 ) -> str:
     """Chuyển ảnh sang Braille art.
 
@@ -166,6 +131,8 @@ def _convert_braille(
         dither = UNICODE_CONFIG.get("braille_dither", True)
     if threshold is None:
         threshold = UNICODE_CONFIG.get("braille_threshold", 128)
+    # Clamp về 0-255 cho mọi call site (image/video/webcam)
+    threshold = max(0, min(255, threshold))
 
     gray = to_grayscale(image)
     raw_pixels = get_pixels(gray)
@@ -176,20 +143,23 @@ def _convert_braille(
     # Kiểu negative là monochrome: màu per-cell làm ⣿ tối mờ trên terminal tối.
     # Tôn trọng `-c` nếu user chủ động yêu cầu màu.
     use_color = enable_color and image.mode in ("RGB", "RGBA") and (force_color or not invert)
-    if use_color:
-        braille_grid = to_braille_art(pixels, invert, threshold, dither)
-        lines = []
-        for y, row in enumerate(braille_grid):
-            line_chars = []
-            for x, char in enumerate(row):
-                # Lấy màu trung bình từ block 4x2
-                r, g, b = _avg_block_color(image, y * 4, x * 2, 4, 2)
-                line_chars.append(colorize(char, r, g, b))
-            lines.append("".join(line_chars))
-        return "\n".join(lines)
-
     braille_grid = to_braille_art(pixels, invert, threshold, dither)
-    return "\n".join("".join(row) for row in braille_grid)
+
+    if not use_color:
+        return "\n".join("".join(row) for row in braille_grid)
+
+    # Preload pixel RGB một lần thay vì getpixel() từng block (chậm)
+    img_w, img_h = image.size
+    rgb_data = list(image.convert("RGB").getdata())
+    lines = []
+    for y, row in enumerate(braille_grid):
+        line_chars = []
+        for x, char in enumerate(row):
+            # Lấy màu trung bình từ block 4x2
+            r, g, b = _avg_block_color(rgb_data, img_w, img_h, y * 4, x * 2, 4, 2)
+            line_chars.append(colorize(char, r, g, b, bg=background))
+        lines.append("".join(line_chars))
+    return "\n".join(lines)
 
 
 def _convert_block(
@@ -197,6 +167,7 @@ def _convert_block(
     enable_color: bool,
     invert: bool | None = None,
     force_color: bool = False,
+    background: bool = False,
 ) -> str:
     """Chuyển ảnh sang block art."""
     gray = to_grayscale(image)
@@ -206,19 +177,22 @@ def _convert_block(
     pixels = _stretch_contrast(raw_pixels)
 
     use_color = enable_color and image.mode in ("RGB", "RGBA") and (force_color or not invert)
-    if use_color:
-        block_grid = to_block_art(pixels, invert)
-        lines = []
-        for y, row in enumerate(block_grid):
-            line_chars = []
-            for x, char in enumerate(row):
-                r, g, b = _avg_block_color(image, y * 2, x, 2, 1)
-                line_chars.append(colorize(char, r, g, b))
-            lines.append("".join(line_chars))
-        return "\n".join(lines)
-
     block_grid = to_block_art(pixels, invert)
-    return "\n".join("".join(row) for row in block_grid)
+
+    if not use_color:
+        return "\n".join("".join(row) for row in block_grid)
+
+    # Preload pixel RGB một lần thay vì getpixel() từng block (chậm)
+    img_w, img_h = image.size
+    rgb_data = list(image.convert("RGB").getdata())
+    lines = []
+    for y, row in enumerate(block_grid):
+        line_chars = []
+        for x, char in enumerate(row):
+            r, g, b = _avg_block_color(rgb_data, img_w, img_h, y * 2, x, 2, 1)
+            line_chars.append(colorize(char, r, g, b, bg=background))
+        lines.append("".join(line_chars))
+    return "\n".join(lines)
 
 
 def _stretch_contrast(pixels: list[list[int]], low_pct: float = 2.0, high_pct: float = 98.0) -> list[list[int]]:
@@ -252,7 +226,7 @@ def _stretch_contrast(pixels: list[list[int]], low_pct: float = 2.0, high_pct: f
     return [[remap(v) for v in row] for row in pixels]
 
 
-def _is_colorful(image: Image.Image) -> bool:
+def is_colorful(image: Image.Image) -> bool:
     """Kiểm tra ảnh có phải photo nhiều màu hay không (chuẩn chafa/viu).
 
     Dùng HSV trên mẫu pixel:
@@ -274,14 +248,15 @@ def _is_colorful(image: Image.Image) -> bool:
     # không cần chi tiết → nhanh hơn nhiều với ảnh chụp hàng triệu pixel.
     img.thumbnail((200, 200))
     w, h = img.size
-    hsv = img.convert("HSV")
+    # Preload HSV data một lần thay vì getpixel() trong loop (chậm)
+    hsv_data = list(img.convert("HSV").getdata())
     step = max(1, min(w, h) // 50)
     sat_sum = 0
     hue_buckets = set()
     count = 0
     for y in range(0, h, step):
         for x in range(0, w, step):
-            hh, ss, _ = hsv.getpixel((x, y))
+            hh, ss, _ = hsv_data[y * w + x]
             sat_sum += ss
             if ss > 30:  # pixel thật sự có màu
                 hue_buckets.add(hh // 8)
@@ -305,15 +280,22 @@ def _is_dark_dominant(pixels: list[list[int]], threshold: int = 128) -> bool:
     return (total / count) < threshold
 
 
-def _avg_block_color(image: Image.Image, y: int, x: int, bh: int, bw: int) -> tuple[int, int, int]:
-    """Tính màu trung bình của block ảnh."""
+def _avg_block_color(
+    rgb_data: list[tuple[int, int, int]],
+    img_w: int,
+    img_h: int,
+    y: int,
+    x: int,
+    bh: int,
+    bw: int,
+) -> tuple[int, int, int]:
+    """Tính màu trung bình của block ảnh từ dữ liệu pixel đã preload."""
     r_total, g_total, b_total, count = 0, 0, 0, 0
-    img_w, img_h = image.size
     for dy in range(bh):
         for dx in range(bw):
             px, py = x + dx, y + dy
             if px < img_w and py < img_h:
-                pr, pg, pb = image.getpixel((px, py))[:3]
+                pr, pg, pb = rgb_data[py * img_w + px]
                 r_total += pr
                 g_total += pg
                 b_total += pb

@@ -52,6 +52,10 @@ def video_to_ascii(
     export_format: str | None = None,
     output_dir: str | None = None,
     show_progress: bool = True,
+    braille_mode: bool = False,
+    block_mode: bool = False,
+    dither: bool | None = None,
+    threshold: int | None = None,
 ) -> list[str]:
     """Chuyển video thành list ASCII frames.
 
@@ -66,6 +70,10 @@ def video_to_ascii(
         export_format: Định dạng xuất (txt, html...)
         output_dir: Thư mục xuất
         show_progress: Hiển thị tiến trình
+        braille_mode: Dùng Braille Unicode
+        block_mode: Dùng block Unicode
+        dither: Dithering braille (None = theo config)
+        threshold: Ngưỡng dot braille (None = theo config)
 
     Returns:
         List các frame ASCII dạng string
@@ -115,6 +123,10 @@ def video_to_ascii(
                 charset_name=charset_name,
                 invert=invert,
                 enable_color=enable_color,
+                braille_mode=braille_mode,
+                block_mode=block_mode,
+                dither=dither,
+                threshold=threshold,
             )
             frames.append(ascii_art)
             processed += 1
@@ -130,7 +142,7 @@ def video_to_ascii(
 
     # Export nếu có yêu cầu
     if export_format and output_dir:
-        _export_video_frames(frames, output_dir, export_format, fps)
+        _export_video_frames(frames, output_dir, export_format, fps, width)
 
     return frames
 
@@ -140,6 +152,7 @@ def _export_video_frames(
     output_dir: str,
     fmt: str,
     fps: float,
+    width: int = 80,
 ) -> None:
     """Xuất các frame ASCII ra file."""
     from .exporter import export_ascii
@@ -156,7 +169,7 @@ def _export_video_frames(
         print(f"📄 Đã xuất: {output_file}")
     elif fmt == "html":
         # HTML với animation bằng JS
-        html = _generate_animation_html(frames, fps, width=80)
+        html = _generate_animation_html(frames, fps, width=width)
         output_file = out_path / "video_ascii.html"
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(html)
@@ -180,6 +193,8 @@ def _generate_animation_html(frames: list[str], fps: float, width: int) -> str:
 
     frames_json = json.dumps(escaped_frames)
     frame_delay = int(1000 / fps)
+    # Frame càng rộng → font càng nhỏ để vừa màn hình (khoảng 120 ký tự/100vw)
+    font_size = max(6, min(14, int(1200 / max(1, width))))
 
     return f"""<!DOCTYPE html>
 <html lang="vi">
@@ -187,7 +202,7 @@ def _generate_animation_html(frames: list[str], fps: float, width: int) -> str:
 <meta charset="UTF-8">
 <title>ASCII Video Animation</title>
 <style>
-  body {{ background: #000; color: #0f0; font-family: monospace; font-size: 10px; line-height: 1; }}
+  body {{ background: #000; color: #0f0; font-family: monospace; font-size: {font_size}px; line-height: 1; }}
   pre {{ margin: 0; padding: 10px; white-space: pre; }}
 </style>
 </head>
@@ -215,6 +230,10 @@ def play_video_ascii(
     invert: bool | None = None,
     enable_color: bool = True,
     fps_limit: int | None = None,
+    braille_mode: bool = False,
+    block_mode: bool = False,
+    dither: bool | None = None,
+    threshold: int | None = None,
 ) -> None:
     """Phát video ASCII realtime trên terminal.
 
@@ -225,6 +244,10 @@ def play_video_ascii(
         invert: Đảo ngược màu
         enable_color: Bật màu
         fps_limit: Giới hạn FPS (None = dùng FPS gốc)
+        braille_mode: Dùng Braille Unicode
+        block_mode: Dùng block Unicode
+        dither: Dithering braille (None = theo config)
+        threshold: Ngưỡng dot braille (None = theo config)
     """
     import shutil
 
@@ -271,6 +294,10 @@ def play_video_ascii(
                 charset_name=charset_name,
                 invert=invert,
                 enable_color=enable_color,
+                braille_mode=braille_mode,
+                block_mode=block_mode,
+                dither=dither,
+                threshold=threshold,
             )
             elapsed = time.time() - start
 

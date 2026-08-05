@@ -3,10 +3,36 @@ color.py - Màu ANSI RGB cho Ascify-CLI
 Hỗ trợ 24-bit true color trong terminal
 """
 
+import os
 import re
 import sys
 
 from .config import COLOR_CONFIG
+
+
+def supports_truecolor() -> bool:
+    """Kiểm tra terminal có hỗ trợ màu 24-bit (truecolor) hay không.
+
+    Heuristic an toàn (tránh báo động giả trên terminal hiện đại):
+      - `NO_COLOR` được set hoặc `TERM=dumb` → chắc chắn không hỗ trợ.
+      - `COLORTERM=truecolor|24bit` hoặc TERM chứa truecolor/direct/24bit → có.
+      - `COLORTERM` set nhưng là giá trị không phải 256-color (vd "16color") → coi là không.
+      - Còn lại mặc định True (hầu hết terminal hiện đại đều hỗ trợ truecolor).
+    """
+    if os.environ.get("NO_COLOR"):
+        return False
+    if os.environ.get("TERM") == "dumb":
+        return False
+
+    colorterm = os.environ.get("COLORTERM", "").lower()
+    term = os.environ.get("TERM", "").lower()
+    if colorterm in ("truecolor", "24bit"):
+        return True
+    if "truecolor" in term or "direct" in term or "24bit" in term:
+        return True
+    if colorterm and colorterm not in ("", "8bit", "256color"):
+        return False  # COLORTERM lạ → không chắc hỗ trợ truecolor
+    return True
 
 
 def init_ansi() -> None:
@@ -106,8 +132,3 @@ def iter_colored_chars(text: str):
         else:
             yield (text[i], *current_color)
             i += 1
-
-
-def get_color_map(key: str) -> tuple[int, int, int]:
-    """Lấy màu từ color map (cho thông báo đặc biệt)."""
-    return COLOR_CONFIG.get("color_map", {}).get(key, (255, 255, 255))
